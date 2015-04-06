@@ -21,12 +21,19 @@ namespace ILRepack.IntegrationTests
 
             AssertFileExists(scenarioExecutable);
 
-            Process process = Process.Start(scenarioExecutable);
+            var processStartInfo = new ProcessStartInfo(scenarioExecutable)
+            {
+                RedirectStandardOutput = true,
+                UseShellExecute = false
+            };
+
+            Process process = Process.Start(processStartInfo);
             Assert.NotNull(process);
 
             bool processEnded = process.WaitForExit(ScenarioProcessWaitTimeInMs);
             Assert.IsTrue(processEnded);
 
+            Debug.Write("Process STDOUT: " + process.StandardOutput.ReadToEnd());
             Assert.AreEqual(0, process.ExitCode);
         }
 
