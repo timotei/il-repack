@@ -67,6 +67,8 @@ namespace ILRepacking
             Options = options;
             Logger = logger;
             _repackImporter = new RepackImporter(logger, Options, this, this, aspOffsets);
+
+            AppDomain.CurrentDomain.AssemblyResolve += OnAssemblyResolveRequested;
         }
 
         public void Merge()
@@ -173,7 +175,6 @@ namespace ILRepacking
             WinExe,
             SameAsPrimaryAssembly
         }
-
 
         protected TargetRuntime ParseTargetPlatform()
         {
@@ -368,6 +369,16 @@ namespace ILRepacking
             }
             if (failed)
                 throw new Exception("Merging failed, see above errors");
+        }
+
+        private Assembly OnAssemblyResolveRequested(object sender, ResolveEventArgs args)
+        {
+            // TODO: this is pretty annoying. We *Need* to update ILRepack to latest .NET FW in order
+            // to be able to merge WPF apps that use the newer .NET fw. Or just ship multiple ILRepack versions?
+            // Maybe, detect current .NET version of ILRepack and the target assemblies, and if WPF merging
+            // is required, signal an error and skip that step/throw an exception?
+            AssemblyDefinition assemblyDefinition = MergedAssemblies.First(asm => asm.FullName == args.Name || asm.Name.Name == args.Name);
+            return Assembly.LoadFrom(assemblyDefinition.MainModule.FullyQualifiedName);
         }
 
         private ResourceDirectory MergeWin32Resources(ResourceDirectory primary, IEnumerable<ResourceDirectory> resources)
@@ -725,11 +736,18 @@ namespace ILRepacking
             {
                 foreach (var res in rr)
                 {
+                    Logger.VERBOSE(string.Format("- Resource '{0}' (type: {1})", res.name, res.type));
                     if (res.type == "ResourceTypeCode.String" || res.type.StartsWith("System.String"))
                     {
                         string content = (string)rr.GetObject(res);
                         content = FixStr(content);
                         rw.AddResource(res.name, content);
+                    }
+                    else if (res.type == "ResourceTypeCode.Stream" && res.name.EndsWith(".baml"))
+                    {
+                        var secondaryLibs = MergedAssemblies.Where(asm => asm != PrimaryAssemblyDefinition);
+                        var bamlResourceProcessor = new BamlResourceProcessor(TargetAssemblyMainModule, secondaryLibs, res);
+                        rw.AddResourceData(res.name, res.type, bamlResourceProcessor.GetProcessedResource());
                     }
                     else
                     {
