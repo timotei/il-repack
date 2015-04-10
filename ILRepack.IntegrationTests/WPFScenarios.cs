@@ -8,7 +8,7 @@ namespace ILRepack.IntegrationTests
     [TestFixture]
     public class WPFScenarios
     {
-        private const int ScenarioProcessWaitTimeInMs = 2000;
+        private const int ScenarioProcessWaitTimeInMs = 10000;
 
         [Test]
         public void GivenXAMLThatUsesLibraryClass_MergedWPFApplicationRunsSuccessfully()
@@ -32,10 +32,10 @@ namespace ILRepack.IntegrationTests
             Assert.NotNull(process);
 
             bool processEnded = process.WaitForExit(ScenarioProcessWaitTimeInMs);
-            Assert.IsTrue(processEnded);
+            Assert.That(processEnded, Is.True, "Process has not ended.");
 
             Console.WriteLine("\nScenario '{0}' STDOUT: {1}", scenarioName, process.StandardOutput.ReadToEnd());
-            Assert.AreEqual(0, process.ExitCode);
+            Assert.That(process.ExitCode, Is.EqualTo(0), "Process exited with error");
         }
 
         private string GetScenarioExecutable(string scenarioName)
