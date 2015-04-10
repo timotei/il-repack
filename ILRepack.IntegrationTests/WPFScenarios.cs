@@ -1,4 +1,5 @@
 ﻿using NUnit.Framework;
+using System;
 using System.Diagnostics;
 using System.IO;
 
@@ -33,7 +34,7 @@ namespace ILRepack.IntegrationTests
             bool processEnded = process.WaitForExit(ScenarioProcessWaitTimeInMs);
             Assert.IsTrue(processEnded);
 
-            Debug.Write("Process STDOUT: " + process.StandardOutput.ReadToEnd());
+            Console.WriteLine("\nScenario '{0}' STDOUT: {1}", scenarioName, process.StandardOutput.ReadToEnd());
             Assert.AreEqual(0, process.ExitCode);
         }
 
